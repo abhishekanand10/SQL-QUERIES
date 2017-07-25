@@ -1,2 +1,2 @@
 # SQL-QUERIES
-analysis done with dognition database
+analysis done with dognition and dillards database
