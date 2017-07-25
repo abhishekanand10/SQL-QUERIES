@@ -1,0 +1,307 @@
+Objective: To know the insight from dognition data, how dognition can improve test completion rates of users on the dognition website. 
+
+#
+ 	SELECT distinct dimension
+	from dogs
+
+conclusion : 11 rows affected.
+
+# Dognition personality dimension and total number of tests completed by each unique DogID
+
+	select d.dog_guid, d.dimension, count(c.created_at) 
+	from dogs d, complete_tests c
+	where d.dog_guid = c.dog_guid
+	group by d.dog_guid
+	limit 100;
+
+conclusion: min no of tests = 20
+
+# the average number of tests completed by unique dogs in each Dognition personality dimension 
+
+	select dimension, avg(t.num) as av
+	from (select d.dog_guid, d.dimension, count(c.created_at) as num 
+	from dogs d join complete_tests c
+      	on d.dog_guid = c.dog_guid
+      	group by d.dog_guid) as t
+	group by dimension
+
+# unique DogIDs are summarized in the Dognition dimensions labeled "None" or "" obtained from above query
+	
+	select  d.dimension,count(distinct d.dog_guid) 
+      	from dogs d join complete_tests c
+      	on d.dog_guid = c.dog_guid
+	group by d.dimension
+
+# checking dimension = "", for reasons
+
+	select  d.dimension,count(distinct d.dog_guid) 
+      	from dogs d join complete_tests c
+      	on d.dog_guid = c.dog_guid
+      	group by d.dimension
+
+conclusion : they all have exclude flags = 1, i.e. they need to be excluded from analysis due to some reasons as told by dognition team.
+
+# so after excluding the values
+
+	select dimension, avg(t.num) as av, count(t.num)
+	from (select d.dog_guid, d.dimension, count(c.created_at) as num 
+      	from dogs d join complete_tests c
+      	on d.dog_guid = c.dog_guid
+      	where (d.exclude is null or d.exclude = 0) and d.dimension <> "" 
+      	group by d.dog_guid) as t
+	group by t.dimension
+
+conclusion: there are not appreciable differences in the number of tests completed by dogs with different Dognition personality dimensions, i.e. focusing on Dognition personality dimensions will not likely lead to significant insights about how to improve Dognition completion rates.
+
+# finding patterns in dog breeds.
+
+	select distinct breed_group
+	from dogs 
+
+conclusion: 9 rows affected.
+
+# the breed, weight, value in the "exclude" column, first or minimum time stamp in the complete_tests table, last or maximum time stamp in the complete_tests table, and total number of tests completed by each unique DogID that has a NULL value in the breed_group column.
+
+	select distinct d.dog_guid,d.breed, d.weight, d.exclude, c.created_at, c.updated_at, count(c.created_at)
+	from dogs d join complete_tests c
+	on d.dog_guid = c.dog_guid
+	where breed_group is null
+	group by d.dog_guid
+
+conclusion: nothing significant
+
+# the relationship between breed_group and number of tests completed, excluding DogIDs with values of "1" in the exclude column
+
+	select breed_group, avg(t.num) as av, count(t.num)
+	from (select d.dog_guid, d.breed_group, count(c.created_at) as num 
+      		from dogs d join complete_tests c
+      		on d.dog_guid = c.dog_guid
+      		where d.exclude <> 1 or d.exclude is null  
+      		group by d.dog_guid) as t
+	group by t.breed_group
+
+conclusion: NULL Values and empty strings present in the breed group coulmn.
+
+# checking for Sporting, Hound, Herding, and Working breed_groups using an IN clause.
+
+	select breed_group, avg(t.num) as av, count(t.num)
+	from (select d.dog_guid, d.breed_group, count(c.created_at) as num 
+	      from dogs d join complete_tests c
+	      on d.dog_guid = c.dog_guid
+	      where d.exclude <> 1 or d.exclude is null  
+	      group by d.dog_guid) as t
+	where breed_group in ('sporting','hound','herding','working')
+	group by t.breed_group
+
+conclusion: herding has th heighest average.
+
+# Checking breed_type and total no of completed tests
+
+	select distinct breed_type
+	from dogs
+
+# The relationship between breed_type and number of tests completed, excluding DogIDs with values of "1" in the exclude column
+
+	select breed_type, avg(t.num) as av, count(t.num)
+	from (select d.dog_guid, d.breed_type, count(c.created_at) as num 
+	      from dogs d join complete_tests c
+	      on d.dog_guid = c.dog_guid
+	      where (d.exclude is null or d.exclude = 0)  
+	      group by d.dog_guid) as t
+	group by t.breed_type
+
+conclusion: No appreciable difference between number of tests completed by dogs of different breed types.
+
+# checking whether dog breeds and neutering are related to the number of tests completed
+
+	select d.dog_guid,d.breed_type, count(c.created_at), 
+	    case  when d.breed_type = "pure breed" then "pure_breed" 
+	    else "not_pure_breed"
+	    end as breed_newtype
+	    from dogs d join complete_tests c
+	    on d.dog_guid = c.dog_guid
+	group by d.dog_guid
+	limit 50
+
+	select t.breed_newtype, avg(t.num) as av, count(t.num)
+	from (select d.dog_guid, d.breed_newtype, count(c.created_at) as num 
+	      from (select d1.dog_guid,d1.breed_type,d1.exclude, 
+	            case  when d1.breed_type = "pure breed" then "pure_breed" 
+	            else "not_pure_breed"
+	            end as breed_newtype
+	            from dogs d1) as d join complete_tests c
+	      on d.dog_guid = c.dog_guid
+	      where (d.exclude is null or d.exclude = 0) 
+	      group by d.dog_guid) as t
+	group by t.breed_newtype
+
+conclusion: almost same total count.
+
+# checking null values in breed type
+
+	select t.breed_newtype,t.dog_fixed, avg(t.num) as av, count(t.num)
+	from (select d.dog_guid, d.breed_newtype,d.dog_fixed, count(c.created_at) as num 
+	      from (select d1.dog_guid,d1.breed_type,d1.exclude,d1.dog_fixed, 
+	      case  when d1.breed_type = "pure breed" then "pure_breed" 
+	      else "not_pure_breed"
+	      end as breed_newtype
+	      from dogs d1) as d join complete_tests c
+	on d.dog_guid = c.dog_guid
+	where (d.exclude is null or d.exclude = 0) 
+	group by d.dog_guid) as t
+	group by t.breed_newtype, t.dog_fixed
+
+conclusion:The results obtained suggest that although a dog's breed_type doesn't seem to have a strong relationship with how many tests a dog completed, neutered dogs, on average, seem to finish 1-2 more tests than non-neutered dogs.
+
+# calculating std. deviation for different dimensions
+
+	select dimension, avg(t.num) as av, stddev(t.num)
+	from (select d.dog_guid, d.dimension, count(c.created_at) as num 
+	      from dogs d join complete_tests c
+	      on d.dog_guid = c.dog_guid
+	      where (d.exclude is null or d.exclude = 0) and d.dimension <> "" 
+	      group by d.dog_guid) as t
+	group by t.dimension
+
+conclusion: all the dimensions have almost same std. deviation. so no important trend.
+
+# Avg time taken by different breed types to complete the tests
+
+	select d.breed_type, avg(timestampdiff(minute,e.end_time,e.start_time))as av,stddev(timestampdiff(minute,e.end_time,e.start_time))
+	from dogs d join exam_answers e
+	on d.dog_guid = e.dog_guid
+	where timestampdiff(minute,e.end_time,e.start_time) > 0
+	group by d.breed_type
+
+conclusion: Many of the standard deviations have larger magnitudes than the average duration values. This suggests there are outliers in the data that are significantly impacting the reported average values, so the average values are not likely trustworthy
+
+# To check on which day most no. of tests are completed, excluding data with exclude flag = 1
+
+	select case dayofweek(c.created_at) 
+        	when 1 then "sunday"
+        	when 2 then "monday"
+        	when 3 then "tuesday"
+        	when 4 then "wednesday"
+        	when 5 then "thursday"
+        	when 6 then "friday"
+        	when 7 then "satday"
+        	else "invalid"
+        	end as dayname, count(dayofweek(c.created_at)) 
+    
+	from complete_tests c join dogs d 
+	on d.dog_guid = c.dog_guid
+	where d.exclude is null or d.exclude = 0
+	group by dayname
+	order by count(dayofweek(c.created_at)) desc
+
+conclusion: most no. of cases are completed on Sunday, whereas least on friday.
+
+# 
+
+	select case dayofweek(c.created_at) 
+        	when 1 then "sunday"
+        	when 2 then "monday"
+        	when 3 then "tuesday"
+        	when 4 then "wednesday"
+        	when 5 then "thursday"
+        	when 6 then "friday"
+        	when 7 then "satday"
+        	else "invalid"
+        	end as dayname, count(dayofweek(c.created_at)) 
+    
+	from complete_tests c join 
+    	(select distinct d.dog_guid
+    	from dogs d join users u
+    	on d.user_guid = u.user_guid
+    	where (d.exclude is null or d.exclude = 0) 
+    	and (u.exclude is null or u.exclude = 0))as n 
+	on n.dog_guid = c.dog_guid
+	group by dayname
+	order by count(dayofweek(c.created_at)) desc
+
+conclusion : it again shows the same results. most no. of tests completed is on sunday.
+
+# check if this is the case all the years or not
+
+	select year(c.created_at),case dayofweek(c.created_at) 
+	        when 1 then "sunday"
+	        when 2 then "monday"
+	        when 3 then "tuesday"
+	        when 4 then "wednesday"
+	        when 5 then "thursday"
+	        when 6 then "friday"
+	        when 7 then "satday"
+	        else "invalid"
+	        end as dayname, count(dayofweek(c.created_at)) 
+	    
+	from complete_tests c join 
+	    (select distinct d.dog_guid
+	    from dogs d join users u
+	    on d.user_guid = u.user_guid
+	    where (d.exclude is null or d.exclude = 0) 
+	    and (u.exclude is null or u.exclude = 0))as n 
+	on n.dog_guid = c.dog_guid
+	group by year(c.created_at),dayname 
+	order by year(c.created_at) asc, count(dayofweek(c.created_at)) desc	
+
+conclusion: From year to year, Sundays always have a lot of completed tests, and Fridays always have the fewest or close to the fewest completed tests.
+
+# But, it includes data from all across the world. We want to focus on US customers primarily.
+
+	select year(c.created_at),case dayofweek(c.created_at) 
+	        when 1 then "sunday"
+	        when 2 then "monday"
+	        when 3 then "tuesday"
+	        when 4 then "wednesday"
+	        when 5 then "thursday"
+	        when 6 then "friday"
+	        when 7 then "satday"
+	        else "invalid"
+	        end as dayname, count(dayofweek(c.created_at)) 
+	    
+	from complete_tests c join 
+	    (select distinct d.dog_guid, u.country,u.state
+	    from dogs d join users u
+	    on d.user_guid = u.user_guid
+	    where (d.exclude is null or d.exclude = 0) 
+	    and (u.exclude is null or u.exclude = 0))as n 
+	on n.dog_guid = c.dog_guid
+	where n.country = "US" and n.state <> "HI" and n.state <> "AK"
+	group by year(c.created_at),dayname 
+	order by year(c.created_at) asc, count(dayofweek(c.created_at)) desc
+	
+# Also, US has different time-zones. so we need to account for that also. Subtract 6 hours from the time, which will generalise the time zone difference.
+
+select created_at,date_sub(created_at, interval 6 hour) as new_created_at
+from complete_tests
+
+# using the above code
+
+	select year(c.created_at),case dayofweek(date_sub(c.created_at, interval 6 hour)) 
+        	when 1 then "sunday"
+        	when 2 then "monday"
+        	when 3 then "tuesday"
+        	when 4 then "wednesday"             
+        	when 5 then "thursday"
+        	when 6 then "friday"
+        	when 7 then "satday"
+        	else "invalid"
+        	end as dayname, count(dayofweek(date_sub(c.created_at, interval 6 hour))) 
+    	
+	from complete_tests c join 
+	    (select distinct d.dog_guid, u.country,u.state
+	    from dogs d join users u
+	    on d.user_guid = u.user_guid
+	    where (d.exclude is null or d.exclude = 0) 
+	    and (u.exclude is null or u.exclude = 0))as n 
+	on n.dog_guid = c.dog_guid
+	where n.country = "US" and n.state <> "HI" and n.state <> "AK"
+	group by year(c.created_at),dayname 
+	order by year(c.created_at) asc, count(dayofweek(c.created_at)) desc	
+
+
+conclusion: After all the consideration of time zones and country of residence, the data shows that most no of test are complted on weekends.
+
+
+
+Recommendation: It seems like it might be a good idea for Dognition to target reminder or encouragement messages to customers on Sundays.
