@@ -1,0 +1,75 @@
+1.
+
+select extract(year from saledate) as year_num, extract(month from saledate) as month_num, count(distinct saledate)
+from trnsact 
+group by year_num, month_num
+order by year_num, month_num
+
+
+2.
+
+  select         
+        sum(case when extract(month from saledate)=6 then sprice end) as june, 
+        sum(case when extract(month from saledate)=7 then sprice end) as jul, 
+        sum(case when extract(month from saledate)=8 then sprice end) as aug, 
+        (june + jul + aug) as summer_sale
+
+from trnsact 
+where stype ='p' 
+group by sku
+order by summer_sale desc
+
+
+3.
+  
+select extract(year from saledate) as year_num, extract(month from saledate) as month_num, store, count(distinct saledate) as cnt
+
+from trnsact 
+group by year_num, month_num, store
+order by year_num, month_num, cnt
+
+
+4.
+
+select store, extract(year from saledate)as year_num, extract(month from saledate)as month_num, count(distinct saledate)as cnt, sum(sprice) as ttl, ttl/cnt as avprice
+ 
+from trnsact t
+
+WHERE t.stype='P' AND t.store||EXTRACT(YEAR from t.saledate)||EXTRACT(MONTH from t.saledate) IN 
+	(SELECT	store||EXTRACT(YEAR from saledate)||EXTRACT(MONTH from saledate)
+	FROM trnsact
+	where EXTRACT(YEAR from saledate)||EXTRACT(MONTH from saledate) <> 2005||8	
+ 	GROUP BY store,	EXTRACT(YEAR from saledate),EXTRACT(MONTH from saledate)
+	HAVING	COUNT(DISTINCT	saledate)>= 20)
+group by store, year_num, month_num
+order by avprice desc
+
+
+5.
+
+select msa_high,(case   
+              when  msa_high > 70 then  'high'
+              when  msa_high > 60 and msa_high <= 70 then  'medium'
+              when  msa_high > 50 and msa_high <= 60 then  'low' end) as edcn_lvl
+from store_msa
+order by msa_high;
+
+select sum(sprice)/count(distinct saledate) as avprice,
+          (case   
+              when  s.msa_high > 70 then  'high'
+              when  s.msa_high > 60 and s.msa_high <= 70 then  'medium'
+              when  s.msa_high > 50 and s.msa_high <= 60 then  'low' end) as edcn_lvl
+ 
+from trnsact t join store_msa s
+on t.store = s.store
+
+WHERE t.stype='P' AND t.store||EXTRACT(YEAR from t.saledate)||EXTRACT(MONTH from t.saledate) IN 
+	(SELECT	store||EXTRACT(YEAR from saledate)||EXTRACT(MONTH from saledate)
+	FROM trnsact
+	where EXTRACT(YEAR from saledate)||EXTRACT(MONTH from saledate) <> 2005||8	
+ 	GROUP BY store,	EXTRACT(YEAR from saledate),EXTRACT(MONTH from saledate)
+	HAVING	COUNT(DISTINCT	saledate)>= 20)
+group by edcn_lvl
+
+
+
