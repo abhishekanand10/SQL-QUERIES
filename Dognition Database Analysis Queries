@@ -1,4 +1,5 @@
-Objective: To know the insight from dognition data, how dognition can improve test completion rates of users on the dognition website. 
+Objective: To know the insight from dognition data, how dognition can improve test completion
+rates of users on the dognition website. 
 
 #
  	SELECT distinct dimension
@@ -25,7 +26,8 @@ conclusion: min no of tests = 20
       	group by d.dog_guid) as t
 	group by dimension
 
-# unique DogIDs are summarized in the Dognition dimensions labeled "None" or "" obtained from above query
+# unique DogIDs are summarized in the Dognition dimensions labeled "None" or "" obtained from 
+above query
 	
 	select  d.dimension,count(distinct d.dog_guid) 
       	from dogs d join complete_tests c
@@ -39,7 +41,8 @@ conclusion: min no of tests = 20
       	on d.dog_guid = c.dog_guid
       	group by d.dimension
 
-conclusion : they all have exclude flags = 1, i.e. they need to be excluded from analysis due to some reasons as told by dognition team.
+conclusion : they all have exclude flags = 1, i.e. they need to be excluded from analysis due
+to some reasons as told by dognition team.
 
 # so after excluding the values
 
@@ -51,7 +54,9 @@ conclusion : they all have exclude flags = 1, i.e. they need to be excluded from
       	group by d.dog_guid) as t
 	group by t.dimension
 
-conclusion: there are not appreciable differences in the number of tests completed by dogs with different Dognition personality dimensions, i.e. focusing on Dognition personality dimensions will not likely lead to significant insights about how to improve Dognition completion rates.
+conclusion: there are not appreciable differences in the number of tests completed by dogs with 
+different Dognition personality dimensions, i.e. focusing on Dognition personality dimensions 
+will not likely lead to significant insights about how to improve Dognition completion rates.
 
 # finding patterns in dog breeds.
 
@@ -60,7 +65,9 @@ conclusion: there are not appreciable differences in the number of tests complet
 
 conclusion: 9 rows affected.
 
-# the breed, weight, value in the "exclude" column, first or minimum time stamp in the complete_tests table, last or maximum time stamp in the complete_tests table, and total number of tests completed by each unique DogID that has a NULL value in the breed_group column.
+# the breed, weight, value in the "exclude" column, first or minimum time stamp in the complete_tests
+table, last or maximum time stamp in the complete_tests table, and total number of tests completed by 
+each unique DogID that has a NULL value in the breed_group column.
 
 	select distinct d.dog_guid,d.breed, d.weight, d.exclude, c.created_at, c.updated_at, count(c.created_at)
 	from dogs d join complete_tests c
@@ -70,7 +77,8 @@ conclusion: 9 rows affected.
 
 conclusion: nothing significant
 
-# the relationship between breed_group and number of tests completed, excluding DogIDs with values of "1" in the exclude column
+# the relationship between breed_group and number of tests completed, excluding DogIDs with values
+of "1" in the exclude column
 
 	select breed_group, avg(t.num) as av, count(t.num)
 	from (select d.dog_guid, d.breed_group, count(c.created_at) as num 
@@ -100,7 +108,8 @@ conclusion: herding has th heighest average.
 	select distinct breed_type
 	from dogs
 
-# The relationship between breed_type and number of tests completed, excluding DogIDs with values of "1" in the exclude column
+# The relationship between breed_type and number of tests completed, excluding DogIDs with values
+of "1" in the exclude column
 
 	select breed_type, avg(t.num) as av, count(t.num)
 	from (select d.dog_guid, d.breed_type, count(c.created_at) as num 
@@ -151,7 +160,9 @@ conclusion: almost same total count.
 	group by d.dog_guid) as t
 	group by t.breed_newtype, t.dog_fixed
 
-conclusion:The results obtained suggest that although a dog's breed_type doesn't seem to have a strong relationship with how many tests a dog completed, neutered dogs, on average, seem to finish 1-2 more tests than non-neutered dogs.
+conclusion:The results obtained suggest that although a dog's breed_type doesn't seem to have 
+a strong relationship with how many tests a dog completed, neutered dogs, on average, seem to
+finish 1-2 more tests than non-neutered dogs.
 
 # calculating std. deviation for different dimensions
 
@@ -167,13 +178,17 @@ conclusion: all the dimensions have almost same std. deviation. so no important 
 
 # Avg time taken by different breed types to complete the tests
 
-	select d.breed_type, avg(timestampdiff(minute,e.end_time,e.start_time))as av,stddev(timestampdiff(minute,e.end_time,e.start_time))
+	select d.breed_type, avg(timestampdiff(minute,e.end_time,e.start_time))as av,
+	stddev(timestampdiff(minute,e.end_time,e.start_time))
+	
 	from dogs d join exam_answers e
 	on d.dog_guid = e.dog_guid
 	where timestampdiff(minute,e.end_time,e.start_time) > 0
 	group by d.breed_type
 
-conclusion: Many of the standard deviations have larger magnitudes than the average duration values. This suggests there are outliers in the data that are significantly impacting the reported average values, so the average values are not likely trustworthy
+conclusion: Many of the standard deviations have larger magnitudes than the average duration values.
+This suggests there are outliers in the data that are significantly impacting the reported average 
+values, so the average values are not likely trustworthy
 
 # To check on which day most no. of tests are completed, excluding data with exclude flag = 1
 
@@ -244,7 +259,8 @@ conclusion : it again shows the same results. most no. of tests completed is on 
 	group by year(c.created_at),dayname 
 	order by year(c.created_at) asc, count(dayofweek(c.created_at)) desc	
 
-conclusion: From year to year, Sundays always have a lot of completed tests, and Fridays always have the fewest or close to the fewest completed tests.
+conclusion: From year to year, Sundays always have a lot of completed tests, and Fridays always 
+have the fewest or close to the fewest completed tests.
 
 # But, it includes data from all across the world. We want to focus on US customers primarily.
 
@@ -270,7 +286,8 @@ conclusion: From year to year, Sundays always have a lot of completed tests, and
 	group by year(c.created_at),dayname 
 	order by year(c.created_at) asc, count(dayofweek(c.created_at)) desc
 	
-# Also, US has different time-zones. so we need to account for that also. Subtract 6 hours from the time, which will generalise the time zone difference.
+# Also, US has different time-zones. so we need to account for that also. Subtract 6 hours 
+from the time, which will generalise the time zone difference.
 
 select created_at,date_sub(created_at, interval 6 hour) as new_created_at
 from complete_tests
@@ -300,8 +317,11 @@ from complete_tests
 	order by year(c.created_at) asc, count(dayofweek(c.created_at)) desc	
 
 
-conclusion: After all the consideration of time zones and country of residence, the data shows that most no of test are complted on weekends.
+conclusion: After all the consideration of time zones and country of residence, the data shows
+that most no of test are complted on weekends.
 
 
 
-Recommendation: It seems like it might be a good idea for Dognition to target reminder or encouragement messages to customers on Sundays.
+
+Recommendation: It seems like it might be a good idea for Dognition to target "reminder or encouragement
+messages" to customers on Sundays.
